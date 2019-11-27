@@ -31,6 +31,7 @@ print ("Press R to start recording to a video file")
 #loading the keypoint detection model, the image and the 3D model
 predictor_path = "models/shape_predictor_68_face_landmarks.dat"
 image_name = "images/face/face01.jpg"
+image_eye_name = "images/face/face01_eye_.png"
 
 #the smaller this value gets the faster the detection will work
 #if it is too small, the user's face might not be detected
@@ -59,6 +60,7 @@ writer = None
 cameraImg = cap.read()[1]
 
 textureImg = cv2.imread(image_name)
+textureEyeImg = cv2.imread(image_eye_name)
 
 textureCoords = utils_fswap.getFaceTextureCoords(textureImg, mean3DShape, blendshapes, idxs2D, idxs3D, detector, predictor)
 
@@ -269,7 +271,7 @@ def draw_detections(frame, detections):
 # textureCoords= ""# textureCoords   points 15,16,17
 # mesh = "" # mesh
 
-renderer = FaceRendering.FaceRenderer(cameraImg, textureImg, textureCoords, mesh)
+renderer = FaceRendering.FaceRenderer(cameraImg, textureEyeImg, textureCoords, mesh)
 
 
 while True:
@@ -401,6 +403,11 @@ while True:
                 E18 = (P[22][0],  P[22][1]+th  )
                 j = (np.vstack((
                     P[21], E1,E2, E3,E4,E5,E6,E7, E8,E9, P[21],
+                    # P[22], E10, E11, E12,E13,E14,E15,E16, E17, E18, P[22]
+                    
+                    )) ).astype('int32')
+                j_ = (np.vstack((
+                    # P[21], E1,E2, E3,E4,E5,E6,E7, E8,E9, P[21],
                     P[22], E10, E11, E12,E13,E14,E15,E16, E17, E18, P[22]
                     
                     )) ).astype('int32')
@@ -415,9 +422,11 @@ while True:
                 image = renderedImg
                 mask1 = np.zeros(image.shape, dtype=np.uint8)
                 roi_corners = np.array([j], dtype=np.int32)
+                roi_corners_ = np.array([j_], dtype=np.int32)
                 channel_count = image.shape[2]
                 ignore_mask_color = (255,)*channel_count
                 cv2.fillPoly(mask1, roi_corners, ignore_mask_color)
+                cv2.fillPoly(mask1, roi_corners_, ignore_mask_color)
                 masked_image = cv2.bitwise_and(image, mask1)
                 # cv2.imshow('image_masked.png', masked_image)
 
@@ -426,7 +435,7 @@ while True:
                 # cameraImg = (cameraImg * (masked_image==0)) #(masked_image * (masked_image>5))
 
 
-                cameraImg = ImageProcessing.blendImages(masked_image, cameraImg, mask1,featherAmount = 0.1)
+                cameraImg = ImageProcessing.blendImages(masked_image, cameraImg, mask1,featherAmount = 0.15)
 
             # print(f"renderedImg, {renderedImg.shape}, cameraImg, {cameraImg.shape}, mask, {mask.shape}")
             # print(cameraImg.shape)
